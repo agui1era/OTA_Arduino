@@ -7,17 +7,31 @@
 const char* ssid = "WifiAX";        // WiFi name
 const char* password = "hkmhkm1234566";    // WiFi password
 
-const char* mqttServer = "mqtt.cloud.kaaiot.com";
+//Definicion MQTT
+WiFiClient espClient;
+PubSubClient client(espClient);
+PubSubClient client_THB(espClient);
 
+const char* mqttServer = "mqtt.cloud.kaaiot.com";
+const char* mqtt_server_THB = "iot.igromi.com";
+const char* mqtt_id = "bridge001";
+const char* mqtt_user = "igromi";
+const char* mqtt_pass = "imagina12";
+const char* topic="v1/devices/me/telemetry";
+
+//KAA configuración
 const String TOKEN = "imagina12";        // Endpoint token - you get (or specify) it during device provisioning
 const String APP_VERSION = "c5mum6104t2n6tdhrln0-v1";  // Application version - you specify it during device provisioning
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+String str;
+char payload[100];
+int pinState;
+
 
 void setup() {
   Serial.begin(115200);
   client.setServer(mqttServer, 1883);
+  client_THB.setServer(mqtt_server_THB, 1883);
   client.setCallback(handleOtaUpdate);
   initServerConnection();
 
@@ -35,6 +49,7 @@ void setup() {
 void loop() {
   // Do work here
   Serial.println("Test A");
+  EnvioMQTT(1,"KeepAlive"); 
   initServerConnection();
   delay(1000);
 }
@@ -57,6 +72,9 @@ void initServerConnection() {
   setupWifi();
   if (!client.connected()) {
     reconnect();
+  };
+  if (!client_THB.connected()) {
+    reconnect_THB();
   }
   client.loop();
 }
@@ -134,7 +152,34 @@ void reconnect() {
       delay(5000);
     }
   }
-}
+};
+
+void reconnect_THB() 
+{
+  // Loop de reconexion MQTT
+  while (!client_THB.connected()) {
+    Serial.print("Conectando a MQTT...");
+    // Intentado conectar
+    if (client_THB.connect(mqtt_id,mqtt_user,mqtt_pass)) {
+      Serial.println("conectado al server");
+      
+    } else {
+      Serial.print("RC-");
+      Serial.println(client.state());
+      Serial.println("Reintentando....");
+      delay(500);      
+  }
+ }
+};
+
+//Rutina para el envio de datos por MQTT
+void EnvioMQTT(float Data,String ID) {
+      //Se genera estructura de thingsboard
+      str= "{\""+ID+"\":\""+String(Data)+"\"}";
+      str.toCharArray(payload,100);
+      Serial.println(payload);
+      client_THB.publish(topic,payload);
+};
 
 void subscribeToFirmwareUpdates() {
   String serverPushOnConnect = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/#";
