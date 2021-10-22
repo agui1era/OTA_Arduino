@@ -10,7 +10,7 @@ const char* password = "hkmhkm1234566";    // WiFi password
 const char* mqttServer = "mqtt.cloud.kaaiot.com";
 
 const String TOKEN = "imagina12";        // Endpoint token - you get (or specify) it during device provisioning
-const String APP_VERSION = "c5mtj0p04t2n6tdhrcag-v1";  // Application version - you specify it during device provisioning
+const String APP_VERSION = "c5mum6104t2n6tdhrln0-v1";  // Application version - you specify it during device provisioning
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -34,7 +34,7 @@ void setup() {
 
 void loop() {
   // Do work here
-  Serial.println("Test X");
+  Serial.println("Test A");
   initServerConnection();
   delay(1000);
 }
