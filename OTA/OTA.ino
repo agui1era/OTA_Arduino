@@ -49,7 +49,7 @@ void setup() {
 void loop() {
   // Do work here
   Serial.println("Test A");
-  EnvioMQTT(1,"KeepAlive"); 
+  EnvioMQTT(2,"KeepAlive"); 
   initServerConnection();
   delay(1000);
 }
