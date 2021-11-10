@@ -20,7 +20,7 @@ PubSubClient client_THB(espClient_THB);
 
 const char* mqttServer = "mqtt.cloud.kaaiot.com";
 const char* mqtt_server_THB = "iot.igromi.com";
-const char* mqtt_id = "bridge001";
+const char* mqtt_id = "bridge003";
 const char* mqtt_user = "igromi";
 const char* mqtt_pass = "imagina12";
 const char* topic="v1/devices/me/telemetry";
@@ -29,7 +29,7 @@ const char* suscriber ="v1/devices/me/attributes";
 
 //KAA configuración
 const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
-const String APP_VERSION = "c5pc2vp04t2n6tdi9c4g-v1";  // Application version - you specify it during device provisioning
+const String APP_VERSION = "c5pg19h04t2n6tdia00g-v1";  // Application version - you specify it during device provisioning
 
 //Variables varias
 String str;

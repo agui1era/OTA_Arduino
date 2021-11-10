@@ -299,6 +299,7 @@ void MuestreoTHB(){
    previous_time_THB = current_time;
    Serial.print("Tiempo inicio cola MQTT: ");
    Serial.println(millis());
+   client.loop();
    client_THB.loop();
    Serial.print("Tiempo fin cola MQTT: ");
    Serial.println(millis());
