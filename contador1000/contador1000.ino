@@ -6,17 +6,27 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
-#define  QoS 1
+#define  QoS 0
 
 const char* ssid = "WifiAX";        
 const char* password = "hkmhkm1234566";   
 const char* mqttServer = "mqtt.cloud.kaaiot.com";
 const char* mqtt_server_THB = "iot.igromi.com";
 const char* mqtt_server_Local = "192.168.3.177";
+
+
+//Configs
+int         id = 9000;
+const char* mqtt_id_local = "contador1000";
 const char* mqtt_id = "contador1000";
 const char* mqtt_user = "igromi";
 const char* mqtt_pass = "imagina12";
-const char* topic="localTopic";
+//KAA configuración
+const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
+const String APP_VERSION = "c8ub80lah5mis9vv4270-v1";  // Application version - you specify it during device provisioning
+
+
+const char* topic="localTopic2";
 const char* suscriber ="v1/devices/me/attributes";
 
 
@@ -30,20 +40,17 @@ PubSubClient client_THB(espClient_THB);
 WiFiClient espClient_Local;
 PubSubClient client_Local(espClient_Local);
 
-
-//KAA configuración
-const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
-const String APP_VERSION = "c8u9t4tah5mis9vv3hdg-v1";  // Application version - you specify it during device provisioning
-
 //Variables varias
 String str;
-char payload[100];
+String str2;
+char payload[200];
+
 unsigned long previous_time = 0;
 unsigned long previous_time_THB = 0; 
-const long interval = 60000;
+const long interval = 5000;
 const long interval_THB = 1000;
 
-int contador=0;
+int contador1=0;
 int contador2=0;
 int contador3=0;
 int contador4=0;
@@ -74,7 +81,7 @@ const int rele1=12;
 const int rele2=13;
 
 int ciclos=0;
-
+int limite_ciclos=360;
 int flag_reconectar=1;
     
 void setup() {
@@ -127,9 +134,9 @@ void loop() {
   
   if ((estado == false) && (estadoB == true))
     {
-    contador++;
+    contador1++;
     Serial.print("contador: ");
-    Serial.println(contador);
+    Serial.println(contador1);
     };
 
   if ((estado2 == false) &&( estadoB2 == true))
@@ -285,7 +292,7 @@ void reconnect_Local(){
   while (!client_Local.connected()) {
     Serial.println("Intentando conectar a MQTT Local...");
     // Intentado conectar
-    if (client_Local.connect(mqtt_id,mqtt_user,mqtt_pass)) {
+    if (client_Local.connect(mqtt_id_local,mqtt_user,mqtt_pass)) {
       Serial.println("conectado al server Local");
      
     } else {
@@ -357,17 +364,6 @@ void initServerConnection() {
 }
 
 
-//Rutina para el envio de datos por MQTT
-void EnvioMQTT(float Data,String ID) {
-      //Se genera estructura de thingsboard
-      str= "{\""+ID+"\":\""+String(Data)+"\"}";
-      str.toCharArray(payload,100);
-      Serial.println(payload);
-      client_Local.publish(topic,payload,QoS);
-};
-
-
-
 //Rutina de envio de datos a THB 60s y verifico la suscripción 1s
 void MuestreoTHB(){
 
@@ -381,27 +377,19 @@ void MuestreoTHB(){
     
      initServerConnection();
 
-     //Envio de datos al broker MQTT
-     EnvioMQTT(1.0,"version");
-     EnvioMQTT(1000,"id");
-     EnvioMQTT(contador,"contador");
-     EnvioMQTT(contador2,"contador2");
-     EnvioMQTT(contador3,"contador3");
-     EnvioMQTT(contador4,"contador4");
-     EnvioMQTT(digitalRead(pinIN1),"IN1");
-     EnvioMQTT(digitalRead(pinIN2),"IN2");
-     EnvioMQTT(digitalRead(pinIN3),"IN3");
-     EnvioMQTT(digitalRead(pinIN4),"IN4");
+     str= "{ \" id \":\" "+String(id)+" \" ,\"contador1 \":\" "+String(contador1)+"\" ,\"contador2 \" :\"  "+String(contador2)+"\" ,\"contador3 \" :\"  "+String(contador3)+ "\" ,\"contador4 \" :\"  "+String(contador4)+ "\" ,\"IN1 \" :\"  "+String(digitalRead(pinIN1))+  "\" ,\"IN2 \" :\"  "+String(digitalRead(pinIN2))+"\" ,\"IN3 \" :\"  "+String(digitalRead(pinIN3))+"\" ,\"IN4 \" :\"  "+String(digitalRead(pinIN4))+ "  \"  }"; 
+     str.toCharArray(payload,200);
 
-     EnvioMQTT(analogRead(pinADC1),"ADC1");
-     EnvioMQTT(analogRead(pinADC2),"ADC2");
-     EnvioMQTT(analogRead(pinADC3),"ADC3");
-     EnvioMQTT(analogRead(pinADC4),"ADC4");
+     Serial.println(payload);
+     client_Local.publish(topic,payload,QoS);
+     
+     str2="{\"ADC1 \" :\"  "+String(analogRead(pinADC1)) + "\" ,\"ADC2 \" :\"  "+String(analogRead(pinADC2)) + "\" ,\"ADC3 \" :\"  "+String(analogRead(pinADC3)) +"\" ,\"ADC4 \" :\"  "+String(analogRead(pinADC4)) +" \" ,\"Rele1 \"  :\"  "+String(digitalRead(rele1)) + "\" ,\"Rele2 \"  :\"  "+String(digitalRead(rele2)) + "  \"  }";
+     str2.toCharArray(payload,200);
+     
+     Serial.println(payload);
+     client_Local.publish(topic,payload,QoS);
 
-     EnvioMQTT(digitalRead(rele1),"Rele1");
-     EnvioMQTT(digitalRead(rele2),"Rele2");
-
-     contador=0;
+     contador1=0;
      contador2=0;
      contador3=0;
      contador4=0;
@@ -424,8 +412,8 @@ void MuestreoTHB(){
    client.loop();
    client_THB.loop();
 
-  if (ciclos > 1440 ){
-    Serial.println("Vuelvo intentar reconectar: ");
+  if (ciclos > limite_ciclos){
+    Serial.println("Vuelvo intentar reconectar reinicio ciclos");
     flag_reconectar=1;
     ciclos=0;   
     }
