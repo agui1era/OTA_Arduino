@@ -45,7 +45,7 @@ char payload[200];
 
 unsigned long previous_time = 0;
 unsigned long previous_time_THB = 0; 
-const long interval = 5000;
+const long interval = 60000;
 const long interval_THB = 1000;
 
 int contador1=0;
@@ -131,7 +131,7 @@ void loop() {
   
   if ((estado == false) && (estadoB == true))
     {
-    contador1++;
+    //contador1++;
     Serial.print("contador: ");
     Serial.println(contador1);
     };
@@ -367,7 +367,17 @@ void MuestreoTHB(){
     
      initServerConnection();
 
-     str= "{\"id\":\""+String(id)+"\",\"contador1\":\""+String(contador1)+"\",\"contador2\":\""+String(contador2)+"\",\"contador3\":\""+String(contador3)+"\",\"contador4\":\""+String(contador4)+"\",\"IN1\":\""+String(digitalRead(pinIN1))+"\",\"IN2\":\""+String(digitalRead(pinIN2))+"\",\"IN3\":\""+String(digitalRead(pinIN3))+"\",\"IN4\":\""+String(digitalRead(pinIN4))+"\"}"; 
+     if (contador1 == 1)
+     {
+       contador1 = 0; 
+     }
+     else
+     {
+       contador1 = 1;
+      
+     };
+
+     str= "{\"id\":\""+String(id)+"\",\"contadorA\":\""+String(contador1)+"\",\"contadorB\":\""+String(contador2)+"\",\"contadorC\":\""+String(contador3)+"\",\"contadorD\":\""+String(contador4)+"\",\"IN1\":\""+String(digitalRead(pinIN1))+"\",\"IN2\":\""+String(digitalRead(pinIN2))+"\",\"IN3\":\""+String(digitalRead(pinIN3))+"\",\"IN4\":\""+String(digitalRead(pinIN4))+"\"}"; 
      str.toCharArray(payload,200);
 
      Serial.println(payload);
@@ -379,11 +389,11 @@ void MuestreoTHB(){
      Serial.println(payload);
      client_Local.publish(topic,payload,QoS);
 
-     contador1=0;
+     //contador1=0;
      contador2=0;
      contador3=0;
      contador4=0;
-     
+ 
      Serial.print("Ciclos: "); 
      Serial.println(ciclos);
      ciclos++;
