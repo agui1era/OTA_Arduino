@@ -11,8 +11,8 @@
 //Configs
 int         id = 12358;
 const char* mqtt_id_THB = "12358";
-const char* ssid = "WifiAX";        
-const char* password = "hkmhkm1234566";
+const char* ssid = "WWW_IGROMI_WWW";        
+const char* password = "WifiiGromi12";
 const char* mqtt_server_Local = "192.168.3.200";
   
 const char* mqttServer = "mqtt.cloud.kaaiot.com";

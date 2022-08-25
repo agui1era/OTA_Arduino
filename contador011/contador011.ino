@@ -6,27 +6,10 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
-#define  QoS 0
+#define QoS 1
 
-//Configs
-int         id = 12358;
-const char* mqtt_id_THB = "12358";
-const char* ssid = "WifiAX";        
-const char* password = "hkmhkm1234566";
-const char* mqtt_server_Local = "192.168.3.200";
-  
-const char* mqttServer = "mqtt.cloud.kaaiot.com";
-const char* mqtt_server_THB = "iot.igromi.com";
-const char* mqtt_id_local = "bridge_id";
-const char* mqtt_user = "igromi";
-const char* mqtt_pass = "imagina12";
-
-//KAA configuración
-const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
-const String APP_VERSION = "c8ub80lah5mis9vv4270-v1";  // Application version - you specify it during device provisioning
-
-const char* topic="localTopic";
-const char* suscriber ="v1/devices/me/attributes";
+const char* ssid = "WWW_IGROMI_COM";        // WiFi name
+const char* password = "wifiiGromi12";    // WiFi password
 
 //Definicion MQTT
 WiFiClient espClient;
@@ -35,20 +18,28 @@ PubSubClient client(espClient);
 WiFiClient espClient_THB;
 PubSubClient client_THB(espClient_THB);
 
-WiFiClient espClient_Local;
-PubSubClient client_Local(espClient_Local);
+const char* mqttServer = "mqtt.cloud.kaaiot.com";
+const char* mqtt_server_THB = "iot.igromi.com";
+const char* mqtt_id = "contador011";
+const char* mqtt_user = "igromi";
+const char* mqtt_pass = "imagina12";
+const char* topic="v1/devices/me/telemetry";
+const char* suscriber ="v1/devices/me/attributes";
+
+
+//KAA configuración
+const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
+const String APP_VERSION = "caq9b98n7nk35lgkmj90-v1";  // Application version - you specify it during device provisioning
 
 //Variables varias
 String str;
-String str2;
-char payload[200];
-
+char payload[100];
 unsigned long previous_time = 0;
 unsigned long previous_time_THB = 0; 
 const long interval = 60000;
 const long interval_THB = 1000;
 
-int contador1=0;
+int contador=0;
 int contador2=0;
 int contador3=0;
 int contador4=0;
@@ -57,6 +48,7 @@ boolean estado=false;
 boolean estado2=false;
 boolean estado3=false;
 boolean estado4=false;
+
 
 boolean estadoB=false;
 boolean estadoB2=false;
@@ -76,10 +68,6 @@ const int pinADC4=35;
     
 const int rele1=12;
 const int rele2=13;
-
-int ciclos=0;
-int limite_ciclos=360;
-int flag_reconectar=1;
     
 void setup() {
   
@@ -99,7 +87,6 @@ void setup() {
   client.setCallback(handleOtaUpdate);
   client_THB.setServer(mqtt_server_THB, 1883);
   client_THB.setCallback(callback_THB);
-  client_Local.setServer(mqtt_server_Local, 1883);
   initServerConnection();
 
   if (client.setBufferSize(1023)) {
@@ -111,12 +98,11 @@ void setup() {
   delay(1000);
   reportCurrentFirmwareVersion();
   requestNewFirmware();
-  Serial.println("TERMINO SETUP");
 }
 
 void loop() {
-  
   // Do work here
+
   estado=digitalRead(pinIN1);
   estado2=digitalRead(pinIN2);
   estado3=digitalRead(pinIN3);
@@ -129,11 +115,12 @@ void loop() {
   estadoB3=digitalRead(pinIN3);
   estadoB4=digitalRead(pinIN4);
   
+
   if ((estado == false) && (estadoB == true))
     {
-    contador1++;
+    contador++;
     Serial.print("contador: ");
-    Serial.println(contador1);
+    Serial.println(contador);
     };
 
   if ((estado2 == false) &&( estadoB2 == true))
@@ -178,6 +165,22 @@ void requestNewFirmware() {
   client.publish(firmwareRequestTopic.c_str(), "{\"observe\":true}"); // observe is used to specify whether the client wants to accept server pushes
 }
 
+//Conexion inicial THB y KAA
+void initServerConnection() {
+  setupWifi();
+  //Verifico conexión MQTT THB
+  if (!client_THB.connected()) {
+    reconnect_THB();
+  };
+
+  //Verifico conexión KAA
+  if (!client.connected()) {
+    reconnect();
+  };
+  client.loop();
+  client_THB.loop();
+}
+
 //Rutina de manejo cola de actualización firmware
 void handleOtaUpdate(char* topic, byte* payload, unsigned int length) {
   Serial.printf("\nHandling firmware update message on topic: %s and payload: ", topic);
@@ -215,21 +218,6 @@ void handleOtaUpdate(char* topic, byte* payload, unsigned int length) {
       break;
   }
 };
-
-//Topico de suscripcion de actualizacion de firmware
-void subscribeToFirmwareUpdates() {
-  String serverPushOnConnect = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/#";
-  client.subscribe(serverPushOnConnect.c_str());
-  Serial.println("Subscribed to server firmware push on topic: " + serverPushOnConnect);
-
-  String serverFirmwareResponse = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/status/#";
-  client.subscribe(serverFirmwareResponse.c_str());
-  Serial.println("Subscribed to server firmware response on topic: " + serverFirmwareResponse);
-
-  String serverFirmwareErrorResponse = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/status/error";
-  client.subscribe(serverFirmwareErrorResponse.c_str());
-  Serial.println("Subscribed to server firmware response on topic: " + serverFirmwareErrorResponse);
-}
 
 //Rutina de suscripción cola THB
 void callback_THB(char* topic, byte* message, unsigned int length) {
@@ -282,130 +270,113 @@ void connectWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-//Conexion a MQTT Local
-void reconnect_Local(){
-  while (!client_Local.connected()) {
-    Serial.println("Intentando conectar a MQTT Local...");
+//Conexion a MQTT KAA
+void reconnect() {
+  while (!client.connected()) {
+    Serial.println("Attempting MQTT connection...");
+    char *client_id = "bqf1uai03p4cop6jr3u0";
+    if (client.connect(client_id)) {
+      Serial.println("Connected to WiFi");
+      subscribeToFirmwareUpdates();
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+};
+
+//Conexion a MQTT Thingsboard y con suscripción
+void reconnect_THB(){
+  while (!client_THB.connected()) {
+    Serial.print("Conectando a MQTT...");
     // Intentado conectar
-    if (client_Local.connect(mqtt_id_local,mqtt_user,mqtt_pass)) {
-      Serial.println("conectado al server Local");
-     
+    if (client_THB.connect(mqtt_id,mqtt_user,mqtt_pass)) {
+      Serial.println("conectado al server");
+       client_THB.subscribe(suscriber,QoS);
     } else {
       Serial.print("RC-");
-      Serial.println(client_Local.state());
+      Serial.println(client.state());
       Serial.println("Reintentando....");
       delay(500);      
     }
   }
-  Serial.println("Saliendo rutina de conexion MQTT Local");
  };
-
- //Conexion a MQTT Thingsboard
-void reconnect_THB(){
-  if(!client_THB.connected()&&(flag_reconectar==1)) {
-    Serial.println("Intentando conectar a MQTT THB...");
-    // Intentado conectar
-    if (client_THB.connect(mqtt_id_THB,mqtt_user,mqtt_pass)) {
-      Serial.println("conectado al server THB");
-      client_THB.subscribe(suscriber,QoS);
-    } else {
-      Serial.println("No se pudo conectar a THB");
-      flag_reconectar=0;     
-    }
-  }
-  Serial.println("Saliendo rutina de conexion MQTT THB");
- };
-
-//Conexion a MQTT KAA
-void reconnect() {
-   if (!client.connected()&&(flag_reconectar==1)) {
-    Serial.println("Intentando conectar MQTT KAA...");
-    char *client_id = "bqf1uai03p4cop6jr3u0";
-    if (client.connect(client_id)) {
-      Serial.println("conectado al server KAA");
-      subscribeToFirmwareUpdates();
-    } else {
-      Serial.println("No se puedo conectar a KAA");
-      flag_reconectar=0;   
-    }
-  }
-  Serial.println("Saliendo rutina de conexion MQTT KAA");
-};
-
-//Conexion inicial THB y KAA
-void initServerConnection() {
-  
-   setupWifi();
-   //Verifico conexión Local
-  if (!client_Local.connected()) {
-    reconnect_Local();
-  };
-
-  //Verifico conexión MQTT THB
-  if (!client_THB.connected()) {
-    reconnect_THB();
-  };
-
-  //Verifico conexión KAA
-  if (!client.connected()) {
-    reconnect();
-  };
-   client.loop();
-   client_THB.loop();  
-}
 
 //Rutina de envio de datos a THB 60s y verifico la suscripción 1s
 void MuestreoTHB(){
 
   unsigned long current_time = millis();
   if (current_time - previous_time >= interval) {
-     
-     previous_time = current_time;
-     Serial.println("Inicio de muestreo");
-     Serial.print("Tiempo inicial: "); 
-     Serial.println(current_time);
     
+     Serial.print("Tiempo inicio muestreo: ");
+     Serial.println(millis());
      initServerConnection();
-
-     str= "{\"id\":\""+String(id)+"\",\"contador1\":\""+String(contador1)+"\",\"contador2\":\""+String(contador2)+"\",\"contador3\":\""+String(contador3)+"\",\"contador4\":\""+String(contador4)+"\",\"IN1\":\""+String(digitalRead(pinIN1))+"\",\"IN2\":\""+String(digitalRead(pinIN2))+"\",\"IN3\":\""+String(digitalRead(pinIN3))+"\",\"IN4\":\""+String(digitalRead(pinIN4))+"\"}"; 
-     str.toCharArray(payload,200);
-
-     Serial.println(payload);
-     client_Local.publish(topic,payload,QoS);
+     previous_time = current_time;
      
-     str2="{\"id\":\""+String(id)+"\",\"ADC1\":\""+String(analogRead(pinADC1)) + "\",\"ADC2\":\""+String(analogRead(pinADC2))+"\",\"ADC3\":\""+String(analogRead(pinADC3))+"\",\"ADC4\":\""+String(analogRead(pinADC4))+"\",\"Rele1\":\""+String(digitalRead(rele1))+ "\",\"Rele2\":\""+String(digitalRead(rele2))+"\"}";
-     str2.toCharArray(payload,200);
-     
-     Serial.println(payload);
-     client_Local.publish(topic,payload,QoS);
+     //Envio de datos a Thingsboard
+     EnvioMQTT(1.0,"version");
+     EnvioMQTT(contador,"contador");
+     EnvioMQTT(contador2,"contador2");
+     EnvioMQTT(contador3,"contador3");
+     EnvioMQTT(contador4,"contador4");
+     EnvioMQTT(digitalRead(pinIN1),"IN1");
+     EnvioMQTT(digitalRead(pinIN2),"IN2");
+     EnvioMQTT(digitalRead(pinIN3),"IN3");
+     EnvioMQTT(digitalRead(pinIN4),"IN4");
 
-     contador1=0;
+     EnvioMQTT(analogRead(pinADC1),"ADC1");
+     EnvioMQTT(analogRead(pinADC2),"ADC2");
+     EnvioMQTT(analogRead(pinADC3),"ADC3");
+     EnvioMQTT(analogRead(pinADC4),"ADC4");
+
+     EnvioMQTT(digitalRead(rele1),"Rele1");
+     EnvioMQTT(digitalRead(rele2),"Rele2");
+
+     contador=0;
      contador2=0;
      contador3=0;
      contador4=0;
      
-     Serial.print("Ciclos: "); 
-     Serial.println(ciclos);
-     ciclos++;
-     
-     current_time = millis();
-     Serial.print("Tiempo final: "); 
-     Serial.println(current_time);
-     Serial.print("Flag de reconectar: ");
-     Serial.println(flag_reconectar);
+     Serial.print("Tiempo fin muestreo: ");
+     Serial.println(millis()); 
   };
 
-  //Verifico cola MQTT THB y KAA
-   current_time = millis();
+  //Verifico cola MQTT THB 
+  current_time = millis();
   if (current_time - previous_time_THB >= interval_THB) {
    previous_time_THB = current_time;
+   Serial.print("Tiempo inicio cola MQTT: ");
+   Serial.println(millis());
    client.loop();
    client_THB.loop();
-
-  if (ciclos > limite_ciclos){
-    Serial.println("Vuelvo intentar reconectar reinicio ciclos");
-    flag_reconectar=1;
-    ciclos=0;   
-    } 
+   Serial.print("Tiempo fin cola MQTT: ");
+   Serial.println(millis());
  }
 };
+
+//Rutina para el envio de datos por MQTT
+void EnvioMQTT(float Data,String ID) {
+      //Se genera estructura de thingsboard
+      str= "{\""+ID+"\":\""+String(Data)+"\"}";
+      str.toCharArray(payload,100);
+      Serial.println(payload);
+      client_THB.publish(topic,payload);
+};
+
+//Topico de suscripcion de actualizacion de firmware
+void subscribeToFirmwareUpdates() {
+  String serverPushOnConnect = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/#";
+  client.subscribe(serverPushOnConnect.c_str());
+  Serial.println("Subscribed to server firmware push on topic: " + serverPushOnConnect);
+
+  String serverFirmwareResponse = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/status/#";
+  client.subscribe(serverFirmwareResponse.c_str());
+  Serial.println("Subscribed to server firmware response on topic: " + serverFirmwareResponse);
+
+  String serverFirmwareErrorResponse = "kp1/" + APP_VERSION + "/cmx_ota/" + TOKEN + "/config/json/status/error";
+  client.subscribe(serverFirmwareErrorResponse.c_str());
+  Serial.println("Subscribed to server firmware response on topic: " + serverFirmwareErrorResponse);
+}
