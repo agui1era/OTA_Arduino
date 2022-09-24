@@ -7,13 +7,16 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #define  QoS 0
+#define DAC1 26
+#define DAC2 25
 
+ 
 //Configs
-int         id = 20000;
-const char* mqtt_id_THB = "20000";
-const char* ssid = "WWW_IGROMI_COM";        
-const char* password = "wifiiGromi12";
-const char* mqtt_server_Local = "192.168.3.200";
+int         id = 20002;
+const char* mqtt_id_THB = "20002";
+const char* ssid = "WifiAX";        
+const char* password = "hkmhkm1234566";
+const char* mqtt_server_Local = "192.168.3.131";
   
 const char* mqttServer = "mqtt.cloud.kaaiot.com";
 const char* mqtt_server_THB = "iot.igromi.com";
@@ -23,7 +26,7 @@ const char* mqtt_pass = "imagina12";
 
 //KAA configuración
 const String TOKEN = "bridge_ota";        // Endpoint token - you get (or specify) it during device provisioning
-const String APP_VERSION = "cc3qh22dblakis4r7o80-v1";  // Application version - you specify it during device provisioning
+const String APP_VERSION = "";  // Application version - you specify it during device provisioning
 
 const char* topic="localTopic";
 const char* suscriber ="v1/devices/me/attributes";
@@ -64,16 +67,15 @@ boolean estadoB3=false;
 boolean estadoB4=false;
 
 //IO pines
-//IO pines
 const int pinIN1=36;
 const int pinIN2=39;
 const int pinIN3=27;
 const int pinIN4=14;
 
-const int pinADC1=4;
-const int pinADC2=5;
-const int pinADC3=6;
-const int pinADC4=7;
+const int pinADC1=32;
+const int pinADC2=33;
+const int pinADC3=34;
+const int pinADC4=35;
     
 const int rele1=2;
 const int rele2=15;
@@ -88,6 +90,10 @@ void setup() {
   
   Serial.begin(115200);
 
+  int value = 127;  // 255 = 10V
+  dacWrite(DAC1, value);
+  dacWrite(DAC2, value);
+
   esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
   esp_task_wdt_add(NULL); //add current thread to WDT watch 
   
@@ -97,6 +103,8 @@ void setup() {
   pinMode(pinIN4, INPUT);
   pinMode(rele1, OUTPUT);
   pinMode(rele2, OUTPUT);
+  pinMode(rele3, OUTPUT);
+  pinMode(rele4, OUTPUT);
   
   client.setServer(mqttServer, 1883);
   client.setCallback(handleOtaUpdate);
@@ -244,6 +252,7 @@ void callback_THB(char* topic, byte* message, unsigned int length) {
     messageTemp += (char)message[i];
   }
   Serial.println(messageTemp);
+  
   if (messageTemp.equals("{\"0\":0}"))
       {
         digitalWrite(rele1,0);
@@ -259,7 +268,23 @@ void callback_THB(char* topic, byte* message, unsigned int length) {
   if (messageTemp.equals("{\"1\":1}"))
       {
         digitalWrite(rele2,1);
-      };       
+      };
+  if (messageTemp.equals("{\"2\":0}"))
+      {
+        digitalWrite(rele3,0);
+      };
+  if (messageTemp.equals("{\"2\":1}"))
+      {
+        digitalWrite(rele3,1);
+      };
+  if (messageTemp.equals("{\"3\":0}"))
+      {
+        digitalWrite(rele4,0);
+      };
+  if (messageTemp.equals("{\"3\":1}"))
+      {
+        digitalWrite(rele4,1);
+      };          
 };
 
 //Configuracón WIFI
